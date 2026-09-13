@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f2f2f7">
+<meta name="color-scheme" content="light">
+<title>Kitea 云鸢：Android 设备网页远程控制台</title>
+<meta name="description" content="Kitea · 云鸢：浏览器远程操控安卓手机/平板：设备信息、屏幕远控、文件管理、进程管理、网页终端、WebDAV 网盘。支持 Root、Shizuku、ADB 权限运行。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 76'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237ec8ff'/%3E%3Cstop offset='1' stop-color='%23007aff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='76' height='76' rx='20' fill='url(%23g)'/%3E%3Cg transform='translate(17 17) scale(1.75)' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 2L11 13'/%3E%3Cpath d='M22 2l-7 20-4-9-9-4z'/%3E%3C/g%3E%3C/svg%3E">
+<style>
+:root{--bg:#f2f2f7;--card:#fff;--fg:#1c1c1e;--sub:#8e8e93;--blue:#007aff;--border:rgba(0,0,0,.08);--mono:'SF Mono',Consolas,monospace;--sh:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05)}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:system-ui,-apple-system,"PingFang SC",sans-serif;background:var(--bg);color:var(--fg);font-size:14px;-webkit-tap-highlight-color:transparent}
+.app{max-width:760px;margin:0 auto;padding:12px 12px 32px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--card);border-radius:16px;margin-bottom:12px;box-shadow:var(--sh);animation:fadeUp .15s ease both;padding:16px}
+.card-title{font-size:13px;font-weight:400;color:var(--sub);margin-bottom:12px}
+.rows{margin:12px 0}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0}
+.rows .row:first-child{padding-top:0}
+.rows .row:last-child{padding-bottom:0}
+.row+.row,.mk-entry+.mk-entry,.mk-mrow+.mk-mrow,.mk-prow+.mk-prow{border-top:1px solid var(--border)}
+.row .label{color:var(--sub);flex-shrink:0}
+.row .value{font-weight:600;text-align:right;word-break:break-all}
+.mono{font-family:var(--mono);font-size:13px}
+.hero{text-align:center;padding:24px 16px;background:linear-gradient(135deg,#2c3e50,#4a6491)}
+.hero .name{font-size:20px;font-weight:700;color:#fff}
+.hero .ver{font-size:13px;color:rgba(255,255,255,.8);margin-top:4px}
+.text{font-size:13px;line-height:1.8;color:#3a3a3c;word-break:break-all}
+.text+.text{margin-top:2px}
+ol.text{padding-left:18px;display:grid;gap:4px}
+.hint{font-size:12px;color:var(--sub);margin-top:8px;line-height:1.5;word-break:break-all}
+.note{color:var(--sub);font-size:12px}
+.dl{display:grid;gap:10px;justify-items:center;padding:4px 0}
+.btn{display:inline-block;width:100%;max-width:320px;background:var(--blue);color:#fff;padding:11px 0;border-radius:999px;font-size:14px;font-weight:500;text-align:center;text-decoration:none;transition:transform .12s,opacity .12s}
+.btn:active{transform:scale(.94);opacity:.8}
+.btn i{font-style:normal;font-weight:600;color:#b25000}
+.qrs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.qr{display:grid;gap:8px}
+.qr>svg{width:100%;height:auto;display:block;border-radius:8px}
+.qr .btn{max-width:none;padding:8px;font-size:13px}
+.btn-wx{background:#07c160}
+.toc{display:flex;flex-wrap:wrap;gap:8px}
+.toc a{background:rgba(118,118,128,.12);color:var(--fg);text-decoration:none;padding:6px 12px;border-radius:999px;font-size:12px}
+.phone{max-width:300px;margin:10px auto 0;border:1px solid var(--border);border-radius:34px;background:#fff;padding:8px;box-shadow:var(--sh)}
+.phone input{display:none}
+.mk{position:relative;display:flex;flex-direction:column;height:580px;border-radius:26px;overflow:hidden;background:var(--bg)}
+.mk-panel{display:none;flex:1;min-height:0;overflow:auto;padding:10px;scrollbar-width:none}
+.mk-panel::-webkit-scrollbar,.mk-plist::-webkit-scrollbar{display:none}
+#mkt-info:checked~.mk .mk-info,#mkt-screen:checked~.mk .mk-screen,#mkt-files:checked~.mk .mk-files,#mkt-terminal:checked~.mk .mk-terminal,#mkt-me:checked~.mk .mk-me{display:block}
+#mkt-process:checked~.mk .mk-process{display:flex;flex-direction:column;overflow:hidden}
+.mk .card{padding:12px;margin-bottom:8px;border-radius:12px}
+.mk .card-title{font-size:12px;margin-bottom:8px}
+.mk .rows{margin:8px 0}
+.mk .row{padding:6px 0;font-size:12px}
+.mk-tabbar{display:flex;height:50px;flex-shrink:0;background:rgba(255,255,255,.9);border-top:1px solid var(--border)}
+.mk-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:10px;color:var(--sub);cursor:pointer;transition:color .15s}
+.mk-tab svg,.mk-fic{stroke-width:1.8;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.mk-tab svg{width:20px;height:20px;stroke:currentColor}
+#mkt-info:checked~.mk .mk-tab[for="mkt-info"],#mkt-screen:checked~.mk .mk-tab[for="mkt-screen"],#mkt-files:checked~.mk .mk-tab[for="mkt-files"],#mkt-process:checked~.mk .mk-tab[for="mkt-process"],#mkt-terminal:checked~.mk .mk-tab[for="mkt-terminal"],#mkt-me:checked~.mk .mk-tab[for="mkt-me"]{color:var(--blue)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.stat{position:relative;overflow:hidden;background:var(--bg);border-radius:12px;padding:10px 6px;text-align:center}
+.stat .num{position:relative;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.stat .lbl{position:relative;font-size:11px;color:var(--sub);margin-top:2px}
+.spark{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.spark polygon{fill:rgba(0,0,0,.03)}
+.spark polyline{fill:none;stroke:rgba(0,0,0,.06);stroke-width:1px;vector-effect:non-scaling-stroke}
+.bolt{width:auto;height:1em;margin-left:2px;vertical-align:-.12em;fill:#34c759}
+.net-chip{display:flex;flex-direction:column;gap:2px;background:var(--bg);border-radius:12px;padding:9px 11px;font-size:11px}
+.net-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.net-head b{font-weight:600}
+.net-rate,.net-ip{color:var(--sub);font-family:var(--mono)}
+.net-ip{word-break:break-all}
+.mk-bar{display:flex;gap:6px;margin-bottom:8px}
+.mk-btn{background:var(--blue);color:#fff;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:500;flex-shrink:0}
+.mk-path{flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:5px 8px;font-family:var(--mono);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-file{display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--card);border-radius:11px;margin-bottom:5px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.mk-fic{width:16px;height:16px;flex-shrink:0;stroke:var(--sub)}
+.mk-fic.dir{stroke:var(--blue)}
+.mk-file .fn{flex:1;min-width:0;font-size:12px;word-break:break-all}
+.mk-file .fm{flex-shrink:0;color:var(--sub);font-size:11px;white-space:nowrap}
+.mk-fab{display:none;position:absolute;right:12px;bottom:62px;z-index:5;width:34px;height:34px;border-radius:999px;background:var(--blue);color:#fff;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,122,255,.35)}
+#mkt-files:checked~.mk .mk-fab{display:flex}
+.mk-fab svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.6;stroke-linecap:round}
+.mk-phead{display:flex;gap:16px;padding:8px 12px;background:var(--card);border-radius:12px 12px 0 0;box-shadow:var(--sh);font-family:var(--mono);font-size:11px;color:var(--sub);flex-shrink:0}
+.mk-plist{background:var(--card);border-radius:0 0 12px 12px;box-shadow:var(--sh);padding-bottom:3px;flex:1;min-height:0;overflow:auto;scrollbar-width:none}
+.mk-prow{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;padding:8px 12px;font-size:12px}
+.mk-pn{flex:1;min-width:0;padding-right:26px;word-break:break-all}
+.mk-pm{flex-basis:100%;display:flex;gap:16px;font-family:var(--mono);font-size:11px;color:var(--sub)}
+.mk-kill{position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:rgba(255,59,48,.12);color:#ff3b30;font-size:13px;font-weight:600}
+.mk-pbar{display:flex;gap:6px;align-items:center;margin-top:8px;flex-shrink:0}
+.mk-psel{flex-shrink:0;background:rgba(118,118,128,.12);border-radius:10px;padding:7px 10px;font-size:11px}
+.mk-tin,.mk-pflt{flex:1;min-width:0;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:7px 10px;color:var(--sub);font-size:11px}
+.mk-tin{font-family:var(--mono)}
+.mk-scrwrap{position:relative;height:100%;border-radius:14px;overflow:hidden;background:radial-gradient(circle at 25% 18%,rgba(94,200,250,.5),transparent 45%),radial-gradient(circle at 78% 82%,rgba(255,159,10,.45),transparent 45%),linear-gradient(160deg,#0f2027,#2c5364 60%,#203a43)}
+.mk-lock,.mk-thumb{pointer-events:none}
+.mk-lock{display:flex;flex-direction:column;align-items:center;padding-top:26px;color:#fff}
+.mk-clock{font-size:56px;font-weight:300;line-height:1;letter-spacing:1px;font-variant-numeric:tabular-nums;text-shadow:0 2px 14px rgba(0,0,0,.4)}
+.mk-date{margin-top:8px;font-size:13px;font-weight:500;color:rgba(255,255,255,.92)}
+.mk-lunar{margin-top:3px;font-size:11px;color:rgba(255,255,255,.66)}
+.mk-thumb{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);width:44px;height:4px;border-radius:999px;background:rgba(255,255,255,.85)}
+.mk-ctrls{position:absolute;right:6px;top:8px;bottom:8px;display:flex;flex-direction:column;justify-content:space-between;align-items:center}
+.mk-cgrp{display:grid;gap:5px}
+.mk-sbtn{display:flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:999px;background:rgba(0,0,0,.45);color:#fff;font-size:10px;font-weight:600}
+.mk-sbtn svg{width:13px;height:13px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mk-term{display:flex;flex-direction:column;height:100%}
+.mk-tout{flex:1;min-height:0;overflow:auto;white-space:pre-wrap;word-break:break-all;background:#000;color:#e5e5ea;padding:12px;border-radius:12px;box-shadow:var(--sh);font-family:var(--mono);font-size:11.5px;line-height:1.65;margin-bottom:8px}
+.mk-tout .p{color:#30d158}
+.mk-tout .d{color:var(--sub)}
+.mk-tout .cur{display:inline-block;width:7px;height:13px;margin-left:1px;vertical-align:-2px;background:#e5e5ea;animation:mkblink 1s steps(1) infinite}
+@keyframes mkblink{50%{opacity:0}}
+.mk-tbar{display:flex;gap:6px;align-items:center}
+.mk-tbtn-o{flex-shrink:0;padding:6px 10px;border:1px solid var(--border);border-radius:999px;color:var(--sub);font-size:11px}
+.mk-entry{display:flex;align-items:center;gap:8px;padding:9px 0;font-size:12.5px}
+.mk-entry svg{margin-left:auto;width:13px;height:13px;flex-shrink:0;stroke:var(--sub);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mk-entry.logout{justify-content:center;color:#ff3b30}
+.mk-mrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;font-size:12.5px}
+.mk-field{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.mk-field .fl{width:52px;flex-shrink:0;color:var(--sub);font-size:12px}
+.mk-field .fin{flex:1;min-width:0;background:var(--bg);border:1px solid transparent;border-radius:10px;padding:7px 10px;font-size:12px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mk-field .fin.pw{color:var(--sub)}
+.mk-sep{height:1px;background:var(--border);margin-bottom:8px}
+.mk-pw{display:flex;flex:1;min-width:0}
+.mk-pw .fin{border-radius:10px 0 0 10px}
+.mk-swap{display:flex;align-items:center;justify-content:center;width:32px;flex-shrink:0;background:var(--card);color:var(--sub);border:1px solid var(--border);border-left:none;border-radius:0 10px 10px 0;font-size:13px}
+.mk-tgl{position:relative;width:40px;height:24px;flex-shrink:0;border-radius:999px;background:rgba(120,120,128,.32);transition:background .2s}
+.mk-tgl::after{content:'';position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:999px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.18);transition:left .2s}
+.mk-tgl.on{background:var(--blue)}
+.mk-tgl.on::after{left:18px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<svg style="display:none"><defs>
+<symbol id="i-dir" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V7l-4-4z"/><path d="M14 3v4h4"/></symbol>
+<symbol id="i-arr" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-vol" viewBox="0 0 24 24"><path d="M4.5 9.6v4.8h2.9l4.4 3.5V6.1L7.4 9.6H4.5z"/></symbol>
+</defs></svg>
+<main class="app">
+
+<div class="card hero">
+<h1 class="name">Kitea</h1>
+<div class="ver">云鸢 · Android 设备网页远程控制台</div>
+</div>
+
+<div class="card">
+<h2 class="card-title">内容导航</h2>
+<nav class="toc">
+<a href="#what">它是什么</a>
+<a href="#feat">能做什么</a>
+<a href="#preview">界面预览</a>
+<a href="#need">需要什么</a>
+<a href="#start">三步上手</a>
+<a href="#dav">手机当网盘</a>
+<a href="#safe">安全须知</a>
+<a href="#dl">资源下载</a>
+</nav>
+</div>
+
+<div class="card" id="what">
+<h2 class="card-title">一、它是什么</h2>
+<p class="text">云鸢是运行在安卓设备上的一个 Rust 程序。</p>
+<p class="text">仅需打开一个网址，就能看到并操作这部设备：看画面、传文件、管进程、执行命令，全在这一个网页里完成。</p>
+<p class="text">控制端不用装任何软件，有浏览器就行。</p>
+</div>
+
+<div class="card" id="feat">
+<h2 class="card-title">二、能做什么</h2>
+<div class="rows">
+<div class="row"><span class="label">信息</span><span class="value">当前设备实时信息一目了然</span></div>
+<div class="row"><span class="label">屏幕</span><span class="value">实时看画面，远程操作、键盘输入</span></div>
+<div class="row"><span class="label">文件</span><span class="value">远程浏览与管理设备文件</span></div>
+<div class="row"><span class="label">进程</span><span class="value">查看与管理正在运行的程序进程</span></div>
+<div class="row"><span class="label">终端</span><span class="value">浏览器里远程执行命令行</span></div>
+<div class="row"><span class="label">WebDAV</span><span class="value">把手机存储挂成网盘</span></div>
+</div>
+</div>
+
+<div class="card" id="preview">
+<h2 class="card-title">三、界面预览</h2>
+<p class="text">先睹为快：这就是控制台的样子，点底部标签即可切换六个功能。</p>
+<div class="phone">
+<input type="radio" name="mktab" id="mkt-info" checked>
+<input type="radio" name="mktab" id="mkt-screen">
+<input type="radio" name="mktab" id="mkt-files">
+<input type="radio" name="mktab" id="mkt-process">
+<input type="radio" name="mktab" id="mkt-terminal">
+<input type="radio" name="mktab" id="mkt-me">
+<div class="mk">
+
+<div class="mk-panel mk-info">
+<div class="card">
+<div class="card-title">设备</div>
+<div class="rows">
+<div class="row"><span class="label">型号</span><span class="value">Android</span></div>
+<div class="row"><span class="label">CPU</span><span class="value">SM8750P 8核</span></div>
+<div class="row"><span class="label">系统</span><span class="value">16</span></div>
+<div class="row"><span class="label">云鸢</span><span class="value mono">1.0.0</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-title">资源</div>
+<div class="grid2">
+<div class="stat"><svg class="spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 0,68 14,60 28,74 42,52 56,58 70,40 84,48 100,32 100,100"/><polyline points="0,68 14,60 28,74 42,52 56,58 70,40 84,48 100,32"/></svg><div class="num">23%</div><div class="lbl">CPU 使用率</div></div>
+<div class="stat"><svg class="spark" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 0,60 14,66 28,52 42,56 56,44 70,50 84,36 100,42 100,100"/><polyline points="0,60 14,66 28,52 42,56 56,44 70,50 84,36 100,42"/></svg><div class="num">61%</div><div class="lbl">内存占用</div></div>
+</div>
+<div class="rows">
+<div class="row"><span class="label">电池</span><span class="value">86%<svg class="bolt" viewBox="0 0 24 24"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span></div>
+<div class="row"><span class="label">电池温度</span><span class="value">32.5℃</span></div>
+<div class="row"><span class="label">进程数量</span><span class="value">8888</span></div>
+<div class="row"><span class="label">运行时间</span><span class="value">3 天 12 小时</span></div>
+<div class="row"><span class="label">可用内存</span><span class="value">4.2 GB / 12.0 GB</span></div>
+<div class="row"><span class="label">可用存储</span><span class="value">200.3GB / 460.0GB</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-title">网络</div>
+<div class="net-chip">
+<div class="net-head"><b>wlan0</b><span class="net-rate">↓ 1.2 MB/s ↑ 240 KB/s</span></div>
+<span class="net-ip">192.168.1.23</span>
+</div>
+</div>
+</div>
+
+<div class="mk-panel mk-screen">
+<div class="mk-scrwrap">
+<div class="mk-ctrls">
+<div class="mk-cgrp">
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><path d="M9 4.5H4.5V9M15 4.5h4.5V9M9 19.5H4.5V15M15 19.5h4.5V15"/></svg></span>
+<span class="mk-sbtn">60</span>
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2.44"/><path d="M17.65 14.29a1.26 1.26 0 0 0 .25 1.39l.05.05a1.53 1.53 0 1 1-2.16 2.16l-.05-.05a1.26 1.26 0 0 0-1.39-.25 1.26 1.26 0 0 0-.76 1.15V18.87a1.53 1.53 0 1 1-3.05 0v-.07a1.26 1.26 0 0 0-.76-1.15 1.26 1.26 0 0 0-1.39.25l-.05.05a1.53 1.53 0 1 1-2.16-2.16l.05-.05a1.26 1.26 0 0 0 .25-1.39 1.26 1.26 0 0 0-1.15-.76H5.13a1.53 1.53 0 1 1 0-3.05h.07a1.26 1.26 0 0 0 1.15-.76 1.26 1.26 0 0 0-.25-1.39l-.05-.05a1.53 1.53 0 1 1 2.16-2.16l.05.05a1.26 1.26 0 0 0 1.39.25h.07a1.26 1.26 0 0 0 .76-1.15V5.13a1.53 1.53 0 1 1 3.05 0v.07a1.26 1.26 0 0 0 .76 1.15h.07a1.26 1.26 0 0 0 1.39-.25l.05-.05a1.53 1.53 0 1 1 2.16 2.16l-.05.05a1.26 1.26 0 0 0-.25 1.39v.07a1.26 1.26 0 0 0 1.15.76H18.87a1.53 1.53 0 1 1 0 3.05h-.07a1.26 1.26 0 0 0-1.15.76z"/></svg></span>
+</div>
+<div class="mk-cgrp">
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><use href="#i-vol"/><path d="M17.2 10.4v3.2M15.6 12h3.2"/></svg></span>
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><use href="#i-vol"/><path d="M15.6 12h3.2"/></svg></span>
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><path d="M12 3.6v7.2"/><path d="M7.4 6.7a7.4 7.4 0 1 0 9.2 0"/></svg></span>
+</div>
+<div class="mk-cgrp">
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><rect x="6.2" y="6.2" width="11.6" height="11.6" rx="3"/></svg></span>
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><path d="M4.5 11.2 12 4.5l7.5 6.7"/><path d="M6.8 9.6V18a1.6 1.6 0 0 0 1.6 1.6h7.2A1.6 1.6 0 0 0 17.2 18V9.6"/></svg></span>
+<span class="mk-sbtn"><svg viewBox="0 0 24 24"><path d="M14.8 5.6 8.4 12l6.4 6.4"/></svg></span>
+</div>
+</div>
+<div class="mk-lock">
+<div class="mk-clock">13:20</div>
+<div class="mk-date">8月26日 星期三</div>
+<div class="mk-lunar">28° 大雨 · 农历七月十四</div>
+</div>
+<div class="mk-thumb"></div>
+</div>
+</div>
+
+<div class="mk-panel mk-files">
+<div class="mk-bar"><span class="mk-btn">上传</span><span class="mk-path">/sdcard/Download</span><span class="mk-btn">前往</span></div>
+<div class="mk-file"><svg class="mk-fic dir"><use href="#i-dir"/></svg><span class="fn">Camera</span><span class="fm">12 项</span></div>
+<div class="mk-file"><svg class="mk-fic dir"><use href="#i-dir"/></svg><span class="fn">Screenshots</span><span class="fm">36 项</span></div>
+<div class="mk-file"><svg class="mk-fic dir"><use href="#i-dir"/></svg><span class="fn">Documents</span><span class="fm">8 项</span></div>
+<div class="mk-file"><svg class="mk-fic"><use href="#i-file"/></svg><span class="fn">report.pdf</span><span class="fm">842 KB</span></div>
+<div class="mk-file"><svg class="mk-fic"><use href="#i-file"/></svg><span class="fn">IMG_2042.jpg</span><span class="fm">2.4 MB</span></div>
+<div class="mk-file"><svg class="mk-fic"><use href="#i-file"/></svg><span class="fn">backup.zip</span><span class="fm">128 MB</span></div>
+</div>
+
+<div class="mk-panel mk-process">
+<div class="mk-phead"><span>PID</span><span>内存</span><span>CPU</span></div>
+<div class="mk-plist">
+<div class="mk-prow"><span class="mk-pn">com.android.systemui</span><span class="mk-kill">×</span><div class="mk-pm"><span>1204</span><span>96 MB</span><span>2.1%</span></div></div>
+<div class="mk-prow"><span class="mk-pn">com.tencent.mm</span><span class="mk-kill">×</span><div class="mk-pm"><span>30021</span><span>512 MB</span><span>5.8%</span></div></div>
+<div class="mk-prow"><span class="mk-pn">com.suto.kitea</span><span class="mk-kill">×</span><div class="mk-pm"><span>4102</span><span>24 MB</span><span>0.4%</span></div></div>
+<div class="mk-prow"><span class="mk-pn">com.android.chrome</span><span class="mk-kill">×</span><div class="mk-pm"><span>5120</span><span>210 MB</span><span>3.3%</span></div></div>
+</div>
+<div class="mk-pbar">
+<span class="mk-psel">内存 ▾</span>
+<span class="mk-pflt">过滤进程名或PID</span>
+</div>
+</div>
+
+<div class="mk-panel mk-terminal">
+<div class="mk-term">
+<div class="mk-tout"><span class="p">$</span> ls /sdcard
+DCIM  Download  Pictures
+
+<span class="p">$</span> pm list packages | wc -l
+<span class="d">182</span>
+
+<span class="p">$</span> uptime
+<span class="d">up 3 days, 12:21, load average: 1.24</span>
+
+<span class="p">$</span> <span class="cur"></span></div>
+<div class="mk-tbar"><span class="mk-tbtn-o">重置</span><span class="mk-tin">输入命令后回车...</span><span class="mk-btn">发送</span></div>
+</div>
+</div>
+
+<div class="mk-panel mk-me">
+<div class="card">
+<div class="card-title">站点</div>
+<div class="mk-entry">修改密码<svg><use href="#i-arr"/></svg></div>
+<div class="mk-entry">网站标题<svg><use href="#i-arr"/></svg></div>
+</div>
+<div class="card">
+<div class="card-title">模块管理</div>
+<div class="mk-mrow"><span>信息</span><span class="mk-tgl on"></span></div>
+<div class="mk-mrow"><span>屏幕</span><span class="mk-tgl on"></span></div>
+<div class="mk-mrow"><span>文件</span><span class="mk-tgl on"></span></div>
+<div class="mk-mrow"><span>进程</span><span class="mk-tgl on"></span></div>
+<div class="mk-mrow"><span>终端</span><span class="mk-tgl on"></span></div>
+</div>
+<div class="card">
+<div class="card-title">WebDAV</div>
+<div class="mk-mrow"><span>启用服务</span><span class="mk-tgl"></span></div>
+<div class="mk-field"><span class="fl">监听目录</span><span class="fin">/sdcard</span></div>
+<div class="mk-mrow"><span>只读模式</span><span class="mk-tgl"></span></div>
+<div class="mk-field"><span class="fl">用户名</span><span class="fin">admin</span></div>
+<div class="mk-field"><span class="fl">密码</span><span class="mk-pw"><span class="fin pw">使用登录密码</span><span class="mk-swap">⇄</span></span></div>
+</div>
+<div class="card">
+<div class="card-title">服务</div>
+<div class="mk-field"><span class="fl">端口</span><span class="fin mono">8888</span></div>
+<div class="mk-sep"></div>
+<div class="mk-mrow"><span>HTTPS</span><span class="mk-tgl"></span></div>
+<div class="mk-field"><span class="fl">证书路径</span><span class="fin">证书文件路径（.pem/.crt/.cer）</span></div>
+<div class="mk-field"><span class="fl">私钥路径</span><span class="fin">私钥文件路径（.pem/.key）</span></div>
+</div>
+<div class="card">
+<div class="card-title">其他</div>
+<div class="mk-entry">关于 Kitea<svg><use href="#i-arr"/></svg></div>
+<div class="mk-entry logout">退出登录</div>
+</div>
+</div>
+
+<span class="mk-fab"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span>
+
+<div class="mk-tabbar">
+<label class="mk-tab" for="mkt-info"><svg viewBox="0 0 24 24"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16L16 12"/><circle cx="12" cy="16" r="1.2" fill="currentColor" stroke="none"/><path d="M6 20h12"/></svg>信息</label>
+<label class="mk-tab" for="mkt-screen"><svg viewBox="0 0 24 24"><rect x="4" y="5.5" width="16" height="10.5" rx="2"/><path d="M9.5 20h5M12 16v4"/></svg>屏幕</label>
+<label class="mk-tab" for="mkt-files"><svg><use href="#i-dir"/></svg>文件</label>
+<label class="mk-tab" for="mkt-process"><svg viewBox="0 0 24 24"><path d="M4 13h3l2.5-6 4 12 2.5-6H20"/></svg>进程</label>
+<label class="mk-tab" for="mkt-terminal"><svg viewBox="0 0 24 24"><path d="M4 18l6-5.5L4 7"/><path d="M12 20h8"/></svg>终端</label>
+<label class="mk-tab" for="mkt-me"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.25"/><path d="M5.5 20c0-3.2 3.2-5 6.5-5s6.5 1.8 6.5 5"/></svg>我的</label>
+</div>
+
+</div>
+</div>
+<div class="hint">模拟界面，数据均为示例；实际以设备上打开的控制台为准。</div>
+</div>
+
+<div class="card" id="need">
+<h2 class="card-title">四、需要什么</h2>
+<p class="text">Kitea 要有较高的系统权限才能操控手机，下面多种方式任选一种：</p>
+<div class="rows">
+<div class="row"><span class="label">Root</span><span class="value">Magisk 模块，权限最完整、全盘读写，开机自启</span></div>
+<div class="row"><span class="label">Shizuku</span><span class="value">免 root，使用 Shizuku 给 Kitea 授权即可</span></div>
+<div class="row"><span class="label">ADB shell</span><span class="value">免 root，数据线连电脑执行一条引导命令</span></div>
+</div>
+</div>
+
+<div class="card" id="start">
+<h2 class="card-title">五、三步上手</h2>
+<ol class="text">
+<li>安装并打开 Kitea 启动器，按提示完成授权，服务会自动部署好并打开控制台。</li>
+<li>让手机和电脑连上同一个 Wi-Fi（同一局域网）。</li>
+<li>电脑浏览器打开 <span class="note">http://[设备IP]:8888</span>，输入密码登录。</li>
+</ol>
+<div class="rows">
+<div class="row"><span class="label">默认端口</span><span class="value mono">8888</span></div>
+<div class="row"><span class="label">默认密码</span><span class="value mono">admin</span></div>
+</div>
+<div class="hint">登录后请第一时间修改默认密码。</div>
+</div>
+
+<div class="card" id="dav">
+<h2 class="card-title">六、手机当网盘</h2>
+<p class="text">开启内置 WebDAV 服务，手机存储立刻变成一块网络硬盘：</p>
+<ol class="text">
+<li>进入「我的」→ WebDAV，设置用户名和密码，打开服务开关。</li>
+<li>在电脑或其它手机、平板上支持 WebDAV 的文件管理器里添加网络地址：<span class="note">http://[设备IP]:8888/dav</span></li>
+<li>之后像使用普通文件夹一样，浏览、复制、下载设备里的文件。</li>
+</ol>
+<div class="hint">默认共享 /sdcard 目录，可自行更改；开启「只读模式」后只能查看、不能修改。</div>
+</div>
+
+<div class="card" id="safe">
+<h2 class="card-title">七、安全须知</h2>
+<ol class="text">
+<li>Root 授权下 Kitea 能获取所有控制权，登录密码就等于这部手机的钥匙。</li>
+<li>建议在可信的网络中使用，不要轻易把密码告知他人。</li>
+<li>登录后先改掉默认密码，条件允许时建议开启 HTTPS 加密。</li>
+</ol>
+</div>
+
+<div class="card" id="dl">
+<h2 class="card-title">八、资源下载</h2>
+<div class="dl">
+<a class="btn" href="https://gitee.com/sutoliu/kitea/tree/master/modules_update" target="_blank" rel="noopener">Gitee</a>
+<a class="btn" href="https://hito.lanzouo.com/b0cm2g3hi" target="_blank" rel="noopener">蓝奏云（密码：<i>suto</i>）</a>
+</div>
+</div>
+
+<div class="card">
+<h2 class="card-title">支持开发</h2>
+<div class="qrs">
+<div class="qr"><svg viewBox="0 0 41 41" role="img" aria-label="支付宝收款二维码"><path fill="#fff" d="M0 0h41v41H0z"></path><path stroke="#000" d="M4 4.5h7m2 0h2m1 0h1m1 0h1m3 0h2m3 0h1m2 0h7M4 5.5h1m5 0h1m2 0h3m3 0h1m2 0h1m1 0h2m2 0h1m1 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h1m2 0h1m2 0h2m4 0h3m3 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m1 0h4m6 0h2m1 0h1m1 0h1m2 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h4m2 0h1m2 0h2m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m1 0h4m1 0h2m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 11.5h1m7 0h1m2 0h4m1 0h1M4 12.5h1m1 0h5m6 0h2m1 0h2m1 0h1m2 0h1m1 0h1m1 0h5M4 13.5h1m1 0h1m1 0h2m6 0h2m3 0h1m1 0h2m1 0h2m2 0h2m1 0h2m1 0h1M4 14.5h5m1 0h3m1 0h1m1 0h4m1 0h1m2 0h1m1 0h1m2 0h1m2 0h1m1 0h2M7 15.5h2m3 0h2m1 0h1m1 0h1m2 0h5m3 0h2m2 0h4M4 16.5h1m1 0h7m1 0h1m3 0h3m2 0h4m2 0h1m2 0h2m1 0h1M6 17.5h1m1 0h2m1 0h1m2 0h2m1 0h1m1 0h1m2 0h1m2 0h1m1 0h2m1 0h1m2 0h1m1 0h2M4 18.5h1m1 0h2m1 0h3m3 0h1m3 0h2m3 0h2m2 0h3m3 0h2M4 19.5h2m2 0h1m2 0h1m4 0h4m2 0h1m2 0h1m1 0h5m1 0h2M7 20.5h2m1 0h1m1 0h1m6 0h3m4 0h4m1 0h2m3 0h1M8 21.5h2m2 0h4m1 0h1m5 0h3m1 0h1m1 0h3m1 0h4M5 22.5h2m3 0h2m6 0h3m1 0h1m1 0h2m2 0h2m1 0h2m1 0h2M4 23.5h2m1 0h2m3 0h1m2 0h2m1 0h2m3 0h1m1 0h3m1 0h6m1 0h1M5 24.5h1m2 0h1m1 0h2m1 0h2m1 0h3m3 0h1m2 0h1m1 0h3m2 0h2m2 0h1M4 25.5h2m5 0h1m3 0h1m3 0h2m3 0h4m1 0h3m1 0h2m1 0h1M4 26.5h1m5 0h1m3 0h1m1 0h1m1 0h1m2 0h3m1 0h1m2 0h1m2 0h5M4 27.5h1m1 0h2m1 0h1m4 0h1m2 0h1m2 0h1m2 0h4m1 0h2m1 0h5M4 28.5h1m1 0h2m2 0h5m3 0h1m1 0h2m1 0h1m2 0h7m2 0h2M12 29.5h1m1 0h4m3 0h1m1 0h2m1 0h1m1 0h1m3 0h1m1 0h3M4 30.5h7m4 0h1m1 0h5m4 0h3m1 0h1m1 0h1m1 0h2M4 31.5h1m5 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h4m3 0h1m3 0h3m1 0h1M4 32.5h1m1 0h3m1 0h1m1 0h1m3 0h1m1 0h3m2 0h4m1 0h6m1 0h2M4 33.5h1m1 0h3m1 0h1m1 0h4m2 0h2m1 0h2m6 0h1m2 0h2m2 0h1M4 34.5h1m1 0h3m1 0h1m1 0h3m1 0h1m2 0h2m1 0h1m1 0h2m2 0h4m2 0h1M4 35.5h1m5 0h1m4 0h5m2 0h1m2 0h2m2 0h1m2 0h3M4 36.5h7m1 0h1m1 0h1m3 0h5m4 0h2m1 0h2m3 0h1"></path></svg><a class="btn" href="https://qr.alipay.com/tsx183072iwa3igjxm5fjb6" target="_blank" rel="noopener">打开支付宝</a></div>
+<div class="qr"><svg viewBox="0 0 45 45" role="img" aria-label="微信收款二维码"><path fill="#fff" d="M0 0h45v45H0z"></path><path stroke="#000" d="M4 4.5h7m1 0h1m1 0h2m1 0h3m1 0h1m1 0h3m2 0h3m3 0h7M4 5.5h1m5 0h1m1 0h2m1 0h1m1 0h2m1 0h4m4 0h3m3 0h1m5 0h1M4 6.5h1m1 0h3m1 0h1m1 0h1m1 0h2m2 0h2m2 0h2m1 0h1m1 0h1m1 0h3m2 0h1m1 0h3m1 0h1M4 7.5h1m1 0h3m1 0h1m2 0h1m1 0h4m1 0h1m7 0h3m1 0h1m1 0h1m1 0h3m1 0h1M4 8.5h1m1 0h3m1 0h1m1 0h2m1 0h2m1 0h1m1 0h1m2 0h1m1 0h2m2 0h1m1 0h2m1 0h1m1 0h3m1 0h1M4 9.5h1m5 0h1m2 0h3m1 0h1m6 0h4m2 0h1m1 0h1m1 0h1m5 0h1M4 10.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M13 11.5h1m1 0h2m1 0h5m3 0h1m1 0h4M4 12.5h1m2 0h8m1 0h2m5 0h1m1 0h1m1 0h1m1 0h5m2 0h1m1 0h3M5 13.5h5m1 0h2m2 0h1m4 0h1m1 0h1m7 0h1m2 0h1m1 0h5M10 14.5h2m3 0h1m1 0h5m1 0h2m2 0h1m1 0h1m1 0h1m2 0h1m1 0h1m1 0h1m1 0h1M4 15.5h1m2 0h1m1 0h1m4 0h1m1 0h1m1 0h1m1 0h5m2 0h2m3 0h2m2 0h5M6 16.5h3m1 0h2m1 0h5m1 0h2m3 0h2m1 0h1m4 0h4m1 0h3M7 17.5h1m3 0h3m1 0h2m3 0h1m1 0h2m3 0h7m2 0h1m2 0h1M5 18.5h1m2 0h1m1 0h4m3 0h1m1 0h1m2 0h3m1 0h1m1 0h1m1 0h3m1 0h7M4 19.5h1m4 0h1m3 0h3m1 0h3m3 0h1m3 0h2m5 0h1m1 0h1m1 0h1m1 0h1M5 20.5h1m1 0h1m2 0h3m3 0h3m2 0h4m3 0h1m2 0h1m2 0h2m2 0h1m1 0h1M4 21.5h5m2 0h2m1 0h1m1 0h1m4 0h1m7 0h3m1 0h1m1 0h1m1 0h2M6 22.5h2m2 0h2m3 0h4m1 0h1m2 0h1m3 0h2m1 0h2m1 0h2m1 0h1m3 0h1M4 23.5h3m1 0h2m1 0h1m1 0h2m2 0h1m1 0h2m6 0h3m1 0h2m1 0h4m1 0h1M4 24.5h1m2 0h2m1 0h1m3 0h2m1 0h2m1 0h2m1 0h1m1 0h1m7 0h2m1 0h2m1 0h2M6 25.5h3m2 0h1m2 0h4m3 0h3m7 0h1m2 0h1m1 0h1m2 0h1M7 26.5h2m1 0h6m3 0h2m3 0h1m1 0h4m1 0h1m2 0h1m2 0h2m1 0h1M5 27.5h1m1 0h2m2 0h1m1 0h2m1 0h1m3 0h1m1 0h3m3 0h1m2 0h1m2 0h2m2 0h1m1 0h1M5 28.5h1m1 0h1m2 0h1m1 0h1m1 0h6m1 0h1m3 0h1m1 0h1m2 0h3m1 0h2m1 0h1m1 0h1M4 29.5h1m1 0h1m2 0h1m1 0h3m2 0h2m4 0h1m1 0h3m2 0h2m1 0h1m1 0h1m1 0h4M4 30.5h2m1 0h1m1 0h2m1 0h2m1 0h1m2 0h2m1 0h4m3 0h1m2 0h2m1 0h1m1 0h1m2 0h2M4 31.5h1m4 0h1m1 0h5m1 0h1m2 0h1m1 0h1m4 0h2m2 0h1m1 0h1m1 0h1m2 0h1M4 32.5h1m1 0h1m1 0h1m1 0h1m2 0h1m2 0h1m2 0h1m4 0h5m2 0h6m1 0h2M12 33.5h1m1 0h2m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m2 0h4m3 0h2m2 0h1M4 34.5h7m1 0h1m1 0h1m2 0h9m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m3 0h1M4 35.5h1m5 0h1m1 0h4m1 0h1m5 0h1m2 0h1m1 0h2m1 0h2m3 0h1m3 0h1M4 36.5h1m1 0h3m1 0h1m1 0h1m2 0h3m1 0h2m1 0h3m2 0h1m3 0h7m1 0h1M4 37.5h1m1 0h3m1 0h1m1 0h3m10 0h1m5 0h4m3 0h1m1 0h1M4 38.5h1m1 0h3m1 0h1m4 0h1m1 0h1m4 0h1m3 0h2m2 0h4m1 0h4m1 0h1M4 39.5h1m5 0h1m2 0h3m2 0h2m1 0h4m1 0h3m1 0h2m1 0h8M4 40.5h7m1 0h1m1 0h3m1 0h1m3 0h3m2 0h1m2 0h1m1 0h2m3 0h2m1 0h1"></path></svg><span class="btn btn-wx">微信扫一扫</span></div>
+</div>
+</div>
+
+</main>
+</body>
+</html>
