@@ -6,7 +6,7 @@
 <meta name="theme-color" content="#f2f2f7">
 <meta name="color-scheme" content="light">
 <title>Kitea 云鸢：Android 设备网页远程控制台</title>
-<meta name="description" content="Kitea · 云鸢：浏览器远程操控安卓手机/平板：设备信息、屏幕远控、文件管理、进程管理、网页终端、WebDAV 网盘。支持 Root、Shizuku、ADB 权限运行。">
+<meta name="description" content="Kitea · 云鸢：浏览器远程操控安卓手机/平板：设备信息、屏幕远控、文件管理、进程管理、网页终端、WebDAV 网盘。">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 76 76'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%237ec8ff'/%3E%3Cstop offset='1' stop-color='%23007aff'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='76' height='76' rx='20' fill='url(%23g)'/%3E%3Cg transform='translate(17 17) scale(1.75)' fill='none' stroke='%23fff' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 2L11 13'/%3E%3Cpath d='M22 2l-7 20-4-9-9-4z'/%3E%3C/g%3E%3C/svg%3E">
 <style>
 :root{--bg:#f2f2f7;--card:#fff;--fg:#1c1c1e;--sub:#8e8e93;--blue:#007aff;--border:rgba(0,0,0,.08);--mono:'SF Mono',Consolas,monospace;--sh:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.05)}
@@ -112,7 +112,9 @@ ol.text{padding-left:18px;display:grid;gap:4px}
 .mk-tout .cur{display:inline-block;width:7px;height:13px;margin-left:1px;vertical-align:-2px;background:#e5e5ea;animation:mkblink 1s steps(1) infinite}
 @keyframes mkblink{50%{opacity:0}}
 .mk-tbar{display:flex;gap:6px;align-items:center}
-.mk-tbtn-o{flex-shrink:0;padding:6px 10px;border:1px solid var(--border);border-radius:999px;color:var(--sub);font-size:11px}
+.mk-tbtn-o,.mk-tbtn-f{flex-shrink:0;padding:6px 10px;border:1px solid transparent;border-radius:999px;font-size:11px}
+.mk-tbtn-o{border-color:var(--border);color:var(--sub)}
+.mk-tbtn-f{background:var(--blue);color:#fff}
 .mk-entry{display:flex;align-items:center;gap:8px;padding:9px 0;font-size:12.5px}
 .mk-entry svg{margin-left:auto;width:13px;height:13px;flex-shrink:0;stroke:var(--sub);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .mk-entry.logout{justify-content:center;color:#ff3b30}
@@ -152,7 +154,6 @@ ol.text{padding-left:18px;display:grid;gap:4px}
 <a href="#what">它是什么</a>
 <a href="#feat">能做什么</a>
 <a href="#preview">界面预览</a>
-<a href="#need">需要什么</a>
 <a href="#start">三步上手</a>
 <a href="#dav">手机当网盘</a>
 <a href="#safe">安全须知</a>
@@ -289,7 +290,7 @@ DCIM  Download  Pictures
 <span class="d">up 3 days, 12:21, load average: 1.24</span>
 
 <span class="p">$</span> <span class="cur"></span></div>
-<div class="mk-tbar"><span class="mk-tbtn-o">重置</span><span class="mk-tin">输入命令后回车...</span><span class="mk-btn">发送</span></div>
+<div class="mk-tbar"><span class="mk-tbtn-o">重置</span><span class="mk-tin">输入命令后回车...</span><span class="mk-tbtn-f">发送</span></div>
 </div>
 </div>
 
@@ -346,18 +347,8 @@ DCIM  Download  Pictures
 <div class="hint">模拟界面，数据均为示例；实际以设备上打开的控制台为准。</div>
 </div>
 
-<div class="card" id="need">
-<h2 class="card-title">四、需要什么</h2>
-<p class="text">Kitea 要有较高的系统权限才能操控手机，下面多种方式任选一种：</p>
-<div class="rows">
-<div class="row"><span class="label">Root</span><span class="value">Magisk 模块，权限最完整、全盘读写，开机自启</span></div>
-<div class="row"><span class="label">Shizuku</span><span class="value">免 root，使用 Shizuku 给 Kitea 授权即可</span></div>
-<div class="row"><span class="label">ADB shell</span><span class="value">免 root，数据线连电脑执行一条引导命令</span></div>
-</div>
-</div>
-
 <div class="card" id="start">
-<h2 class="card-title">五、三步上手</h2>
+<h2 class="card-title">四、三步上手</h2>
 <ol class="text">
 <li>安装并打开 Kitea 启动器，按提示完成授权，服务会自动部署好并打开控制台。</li>
 <li>让手机和电脑连上同一个 Wi-Fi（同一局域网）。</li>
@@ -371,7 +362,7 @@ DCIM  Download  Pictures
 </div>
 
 <div class="card" id="dav">
-<h2 class="card-title">六、手机当网盘</h2>
+<h2 class="card-title">五、手机当网盘</h2>
 <p class="text">开启内置 WebDAV 服务，手机存储立刻变成一块网络硬盘：</p>
 <ol class="text">
 <li>进入「我的」→ WebDAV，设置用户名和密码，打开服务开关。</li>
@@ -382,16 +373,16 @@ DCIM  Download  Pictures
 </div>
 
 <div class="card" id="safe">
-<h2 class="card-title">七、安全须知</h2>
+<h2 class="card-title">六、安全须知</h2>
 <ol class="text">
-<li>Root 授权下 Kitea 能获取所有控制权，登录密码就等于这部手机的钥匙。</li>
+<li>Kitea 拥有较高的系统权限，登录密码就等于这台设备的钥匙。</li>
 <li>建议在可信的网络中使用，不要轻易把密码告知他人。</li>
 <li>登录后先改掉默认密码，条件允许时建议开启 HTTPS 加密。</li>
 </ol>
 </div>
 
 <div class="card" id="dl">
-<h2 class="card-title">八、资源下载</h2>
+<h2 class="card-title">七、资源下载</h2>
 <div class="dl">
 <a class="btn" href="https://gitee.com/sutoliu/kitea/tree/master/modules_update" target="_blank" rel="noopener">Gitee</a>
 <a class="btn" href="https://hito.lanzouo.com/b0cm2g3hi" target="_blank" rel="noopener">蓝奏云（密码：<i>suto</i>）</a>
